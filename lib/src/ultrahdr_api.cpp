@@ -1456,12 +1456,14 @@ uhdr_error_info_t uhdr_dec_set_out_img_format(uhdr_codec_private_t* dec, uhdr_im
     status.has_detail = 1;
     snprintf(status.detail, sizeof status.detail, "received nullptr for uhdr codec instance");
   } else if (fmt != UHDR_IMG_FMT_32bppRGBA8888 && fmt != UHDR_IMG_FMT_64bppRGBAHalfFloat &&
-             fmt != UHDR_IMG_FMT_32bppRGBA1010102) {
+             fmt != UHDR_IMG_FMT_32bppRGBA1010102 &&
+             fmt != UHDR_IMG_FMT_12bppYCbCr420 &&
+             fmt != UHDR_IMG_FMT_24bppYCbCrP010) {
     status.error_code = UHDR_CODEC_INVALID_PARAM;
     status.has_detail = 1;
     snprintf(status.detail, sizeof status.detail,
              "invalid output format %d, expects one of {UHDR_IMG_FMT_32bppRGBA8888,  "
-             "UHDR_IMG_FMT_64bppRGBAHalfFloat, UHDR_IMG_FMT_32bppRGBA1010102}",
+             "UHDR_IMG_FMT_64bppRGBAHalfFloat, UHDR_IMG_FMT_32bppRGBA1010102, UHDR_IMG_FMT_12bppYCbCr420, UHDR_IMG_FMT_24bppYCbCrP010}",
              fmt);
   }
   if (status.error_code != UHDR_CODEC_OK) return status;

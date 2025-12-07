@@ -1396,10 +1396,14 @@ uhdr_error_info_t JpegR::decodeJPEGR(uhdr_compressed_image_t* uhdr_compressed_im
   UHDR_ERR_CHECK(
       extractPrimaryImageAndGainMap(uhdr_compressed_img, &primary_jpeg_image, &gainmap_jpeg_image))
 
+  // Decode to YCbCr for YUV output or when applying HDR gain map
+  bool decode_to_yuv = (output_format == UHDR_IMG_FMT_12bppYCbCr420 || 
+                        output_format == UHDR_IMG_FMT_24bppYCbCrP010 ||
+                        output_ct != UHDR_CT_SRGB);
   JpegDecoderHelper jpeg_dec_obj_sdr;
   UHDR_ERR_CHECK(jpeg_dec_obj_sdr.decompressImage(
       primary_jpeg_image.data, primary_jpeg_image.data_sz,
-      (output_ct == UHDR_CT_SRGB) ? DECODE_TO_RGB_CS : DECODE_TO_YCBCR_CS));
+      decode_to_yuv ? DECODE_TO_YCBCR_CS : DECODE_TO_RGB_CS));
 
   JpegDecoderHelper jpeg_dec_obj_gm;
   uhdr_raw_image_t gainmap;
@@ -1439,6 +1443,18 @@ uhdr_error_info_t JpegR::decodeJPEGR(uhdr_compressed_image_t* uhdr_compressed_im
   uhdr_raw_image_t sdr_intent = jpeg_dec_obj_sdr.getDecompressedImage();
   sdr_intent.cg =
       IccHelper::readIccColorGamut(jpeg_dec_obj_sdr.getICCPtr(), jpeg_dec_obj_sdr.getICCSize());
+  
+  // If YUV output is requested and this is SDR content (no gain map HDR processing needed)
+  if ((output_format == UHDR_IMG_FMT_12bppYCbCr420 || 
+       output_format == UHDR_IMG_FMT_24bppYCbCrP010) && 
+      output_ct == UHDR_CT_SRGB) {
+    // Return YCbCr data directly without RGB conversion
+    UHDR_ERR_CHECK(copy_raw_image(&sdr_intent, dest));
+    dest->ct = UHDR_CT_SRGB;
+    dest->cg = sdr_intent.cg != UHDR_CG_UNSPECIFIED ? sdr_intent.cg : UHDR_CG_BT_709;
+    return g_no_error;
+  }
+  
   if (output_ct == UHDR_CT_SRGB) {
     UHDR_ERR_CHECK(copy_raw_image(&sdr_intent, dest));
     return g_no_error;
